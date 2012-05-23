@@ -15,7 +15,16 @@
   (rand-nth (board/available-moves game)))
 
 ;;;
-;;; My own bot
+;;; Common Utility Methods
+;;;
+
+(defn- maximize-available-moves [scorefn game]
+  (first (reverse (sort-by
+      (fn [arg] (scorefn arg game))
+      (board/available-moves game)))))
+
+;;;
+;;; Better Than Random
 ;;;
 
 (defn- num-neighbors [[r c] board]
@@ -50,9 +59,19 @@
   (+ (distance-from-self piece game) (distance-from-opponent piece game)))
 
 (defn better-than-random [game]
-  (first (reverse (sort-by
-    (fn [arg] (score arg game))
-    (board/available-moves game)))))
+  (maximize-available-moves score game))
+
+;;;
+;;; Maximize Next Turn's Point Spread
+;;;
+
+(defn- point-spread [[pos-a pos-b] game]
+  (let [nextgame (assoc game :board (board/add-piece game 0 pos-a pos-b))]
+    (- (count (board/available-moves nextgame))
+      (count (board/available-opposing-moves nextgame)))))
+
+(defn maximize-next-turns-point-spread [game]
+  (maximize-available-moves point-spread game))
 
 ;;;
 ;;; Main
@@ -62,6 +81,6 @@
   (println (str "Scores: "
     (crosscram/play-symmetric
       (crosscram/new-game (Integer/parseInt rows) (Integer/parseInt columns) :horizontal )
-      better-than-random
       random-moves
+      maximize-next-turns-point-spread
       (Integer/parseInt num-games)))))
